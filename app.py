@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from pymongo import MongoClient
 from flask_cors import CORS,cross_origin
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:5173")
@@ -17,6 +18,30 @@ db = client['heartGuardian']                         #MongoDB database
 users_collection = db['users']
 predictions_collection = db['predictions']
 records_collection = db['records']                   #Collection
+
+@app.route('/register', methods=['POST'])            #User Registration
+@cross_origin()
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+    mobile_number = data.get('mobile_number')
+    
+    if not all([username, password, email, mobile_number]):
+        return jsonify({'error': 'Missing some required fields'}), 400
+    
+    hashed_password = generate_password_hash(password)
+    user_record = {
+        'username': username,
+        'password': hashed_password,
+        'email': email,
+        'mobile_number': mobile_number
+    }
+
+    users_collection.insert_one(user_record)
+
+    return jsonify({'message': 'User registered successfully'}), 201
 
 @app.route('/predict', methods=['POST'])
 @cross_origin()
