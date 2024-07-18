@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 import pickle
 import numpy as np
+from pymongo import MongoClient
 from flask_cors import CORS,cross_origin
 
 app = Flask(__name__)
@@ -9,6 +10,13 @@ CORS(app, origins="http://localhost:5173")
 # Load the pickled model
 with open('model\HeartPrediction.pkl', 'rb') as file:
     model = pickle.load(file)
+
+
+client = MongoClient('mongodb://localhost:27017/')
+db = client['heartGuardian']          #MongoDB database
+users_collection = db['users']
+predictions_collection = db['predictions']
+records_collection = db['records']                   #Collection
 
 @app.route('/predict', methods=['POST'])
 @cross_origin()
@@ -43,6 +51,19 @@ def predict():
 
 # Convert the prediction to a standard Python type
     prediction = prediction.tolist()
+
+ # Store prediction in the database
+    prediction_record = {
+        'age': age,
+        'sex': sex,
+        'cp': cp,
+        'trestbps': trestbps,
+        'chol': chol,
+        'fbs': fbs,
+        'thalach': thalach,
+        'prediction': prediction
+    }
+    predictions_collection.insert_one(prediction_record)
 
 # Return the prediction as JSON
     return jsonify({'prediction': prediction})
