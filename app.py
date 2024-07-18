@@ -13,7 +13,7 @@ with open('model\HeartPrediction.pkl', 'rb') as file:
 
 
 client = MongoClient('mongodb://localhost:27017/')
-db = client['heartGuardian']          #MongoDB database
+db = client['heartGuardian']                         #MongoDB database
 users_collection = db['users']
 predictions_collection = db['predictions']
 records_collection = db['records']                   #Collection
