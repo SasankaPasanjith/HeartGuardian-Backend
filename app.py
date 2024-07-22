@@ -52,6 +52,25 @@ def register():
 
     return jsonify({'message': 'The user successfully registered.'}), 201
 
+
+@app.route('/login', methods=['POST'])             #User Login function
+@cross_origin()
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not all([username, password]):
+        return jsonify({'error': 'Missing some required fields'}), 400
+
+    user = users_collection.find_one({'username':username})
+
+    if user and check_password_hash(user['password'], password):
+        return jsonify({'message': 'The user successfully logged in.'}), 200
+    else:
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+
 @app.route('/predict', methods=['POST'])          #Disease prediction function
 @cross_origin()
 def predict():
