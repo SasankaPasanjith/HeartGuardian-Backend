@@ -17,9 +17,9 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['heartGuardian']                         #MongoDB database
 users_collection = db['users']
 predictions_collection = db['predictions']
-records_collection = db['records']                   #Collection
+records_collection = db['records']                   #Collections
 
-@app.route('/register', methods=['POST'])            #User Registration
+@app.route('/register', methods=['POST'])            #User Registration function
 @cross_origin()
 def register():
     data = request.get_json()
@@ -43,7 +43,7 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['POST'])          #Disease prediction function
 @cross_origin()
 def predict():
     data = request.get_json()
@@ -77,7 +77,7 @@ def predict():
 # Convert the prediction to a standard Python type
     prediction = prediction.tolist()
 
- # Store prediction in the database
+ # Store prediction in to the prediction collection in DB
     prediction_record = {
         'age': age,
         'sex': sex,
@@ -95,7 +95,7 @@ def predict():
 
 @app.route("/")
 def index():
-    return "Heart Disease Prediction API running"  
+    return "Heart Disease Prediction API running"  #Display message
 
 if __name__ == '__main__':
     app.run(debug=True)
