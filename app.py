@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 from pymongo import MongoClient
 from flask_cors import CORS,cross_origin
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash , check_password_hash
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:5173")
@@ -26,12 +26,17 @@ def register():
     firstname = data.get('firstname')
     lastname = data.get('lastname')
     username = data.get('username')
-    password = data.get('password')
     email = data.get('email')
     mobile_number = data.get('mobile_number')
+    password = data.get('password')
+    confirm_password = data.get('confirm_password')
     
-    if not all([username, password, email, mobile_number]):
+    if not all([firstname, lastname,username, password, confirm_password, email, mobile_number]):
         return jsonify({'error': 'Missing some required fields'}), 400
+    
+
+    if password != confirm_password:
+        return jsonify({'error': 'Passwords do not match'}), 400
     
     hashed_password = generate_password_hash(password)
     user_record = {
