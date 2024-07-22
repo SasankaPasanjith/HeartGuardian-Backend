@@ -23,6 +23,8 @@ records_collection = db['records']                   #Collections
 @cross_origin()
 def register():
     data = request.get_json()
+    firstname = data.get('firstname')
+    lastname = data.get('lastname')
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
@@ -33,6 +35,8 @@ def register():
     
     hashed_password = generate_password_hash(password)
     user_record = {
+        'firstname': firstname,
+        'lastname': lastname,
         'username': username,
         'password': hashed_password,
         'email': email,
@@ -41,7 +45,7 @@ def register():
 
     users_collection.insert_one(user_record)
 
-    return jsonify({'message': 'User registered successfully'}), 201
+    return jsonify({'message': 'The user successfully registered.'}), 201
 
 @app.route('/predict', methods=['POST'])          #Disease prediction function
 @cross_origin()
