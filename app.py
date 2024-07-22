@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 import pickle
 import numpy as np
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from flask_cors import CORS,cross_origin
 from werkzeug.security import generate_password_hash , check_password_hash
 
@@ -38,6 +38,10 @@ def register():
     if password != confirm_password:
         return jsonify({'error': 'Passwords do not match'}), 400
     
+    existing_user = users_collection.find_one({'$or': [{'username': username}, {'email':email}]})  #Checking existing users
+    if existing_user:
+        return jsonify({'error': 'Username or email already exists'}), 400
+    
     hashed_password = generate_password_hash(password)
     user_record = {
         'firstname': firstname,
@@ -48,7 +52,10 @@ def register():
         'mobile_number': mobile_number
     }
 
-    users_collection.insert_one(user_record)
+    try:
+        users_collection.insert_one(user_record)     #Handle DB errors
+    except errors.PyMongoError as e:
+        return jsonify({'error': str(e)}), 500
 
     return jsonify({'message': 'The user successfully registered.'}), 201
 
