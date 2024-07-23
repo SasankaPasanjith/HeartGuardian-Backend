@@ -4,9 +4,13 @@ import numpy as np
 from pymongo import MongoClient, errors
 from flask_cors import CORS,cross_origin
 from werkzeug.security import generate_password_hash , check_password_hash
+import jwt
+import datetime
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:5173")
+
+app.config['SECRET_KEY'] = '20127'  
 
 # Load the pickled model
 with open('model\HeartPrediction.pkl', 'rb') as file:
@@ -73,7 +77,13 @@ def login():
     user = users_collection.find_one({'username':username})
 
     if user and check_password_hash(user['password'], password):
-        return jsonify({'message': 'The user successfully logged in.'}), 200
+        token = jwt.encode({'username': username, 'exp':datetime.datetime.utcnow()+ datetime.timedelta(hours=24)},
+                            app.config['SECRET_KEY'], algorithem = 'HS256')
+        return jsonify({'message': 'The user successfully logged in.',
+            'token': token,
+            'username': username,
+            'email': user['email']
+        }), 200
     else:
         return jsonify({'error': 'Invalid username or password'}), 401
 
