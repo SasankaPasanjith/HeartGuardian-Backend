@@ -105,6 +105,7 @@ def predict():
 
     if not data :
         return jsonify({'error': 'No data provided'}), 400
+    
     # Get the input data from the form
     age = data.get('age')
     sex = data.get('sex')
@@ -123,9 +124,11 @@ def predict():
 
     print("Input data:", input_data)  # Debug print
 
+    try:
+        prediction = model.predict(input_data)      # Make prediction using the model
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-   # Make prediction using the model
-    prediction = model.predict(input_data)
 
     print("Prediction:", prediction)
 
@@ -145,7 +148,11 @@ def predict():
         'username': user['username'] if user else None,  #Add username if user authenticated
         'email': user['email'] if user else None         #Add email if user authenticated
     }
-    predictions_collection.insert_one(prediction_record)
+
+    try:
+        predictions_collection.insert_one(prediction_record)     #Handle DB errors
+    except errors.PyMongoError as e:
+        return jsonify({'error': str(e)}), 500
 
 # Return the prediction as JSON
     return jsonify({'prediction': prediction})
