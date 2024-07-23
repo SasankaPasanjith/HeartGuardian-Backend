@@ -91,6 +91,16 @@ def login():
 @app.route('/predict', methods=['POST'])          #Disease prediction function
 @cross_origin()
 def predict():
+
+    token = request.headers.get('Authorization')
+    user = None
+    if token:
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            user = users_collection.find_one({'username': data['username']})
+        except:
+            pass                    #If token is invalid or missing, the function continue as unauthenticated user
+
     data = request.get_json()
 
     if not data :
@@ -131,7 +141,9 @@ def predict():
         'chol': chol,
         'fbs': fbs,
         'thalach': thalach,
-        'prediction': prediction
+        'prediction': prediction,
+        'username': user['username'] if user else None,  #Add username if user authenticated
+        'email': user['email'] if user else None         #Add email if user authenticated
     }
     predictions_collection.insert_one(prediction_record)
 
