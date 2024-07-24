@@ -157,6 +157,35 @@ def predict():
 # Return the prediction as JSON
     return jsonify({'prediction': prediction})
 
+
+@app.route('/predictions', methods=['GET'])     #Get all past predictions function
+@cross_origin()
+def get_predictions():
+    token = request.headers.get('Authorization')
+    if not token:
+        return jsonify({'error': 'The token is missing.'}), 403
+
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'The token has expired.'}), 403
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'The token is invalid.'}), 403
+    
+    user = users_collection.find_one({'username': data['username']})
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    try:
+        predictions = list(predictions_collection.find({'username': user['username']}))
+    except errors.PyMongoError as e:
+        return jsonify({'error': str(e)}),500
+    
+    for prediction in predictions:
+        prediction['_id'] = str(prediction['_id'])
+        
+    return jsonify({'predictions': predictions})
+
 @app.route("/")
 def index():
     return "Heart Disease Prediction API running"  #Display message
