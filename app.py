@@ -27,29 +27,25 @@ records_collection = db['records']                   #Collections
 @cross_origin()
 def register():
     data = request.get_json()
-    firstname = data.get('firstname')
-    lastname = data.get('lastname')
     username = data.get('username')
     email = data.get('email')
     mobile_number = data.get('mobile_number')
     password = data.get('password')
     confirm_password = data.get('confirm_password')
     
-    if not all([firstname, lastname,username, password, confirm_password, email, mobile_number]):
+    if not all([username, password, confirm_password, email, mobile_number]):
         return jsonify({'error': 'Missing some required fields'}), 400
     
-
     if password != confirm_password:
         return jsonify({'error': 'Passwords do not match'}), 400
-    
-    existing_user = users_collection.find_one({'$or': [{'username': username}, {'email':email}]})  #Checking existing users
+
+    existing_user = users_collection.find_one({'$or': [{'username': username}, {'email': email}]})
     if existing_user:
         return jsonify({'error': 'Username or email already exists'}), 400
-    
+
     hashed_password = generate_password_hash(password)
+
     user_record = {
-        'firstname': firstname,
-        'lastname': lastname,
         'username': username,
         'password': hashed_password,
         'email': email,
@@ -57,7 +53,7 @@ def register():
     }
 
     try:
-        users_collection.insert_one(user_record)     #Handle DB errors
+        users_collection.insert_one(user_record)
     except errors.PyMongoError as e:
         return jsonify({'error': str(e)}), 500
 
@@ -68,24 +64,23 @@ def register():
 @cross_origin()
 def login():
     data = request.get_json()
-    username = data.get('username')
+    email = data.get('email')
     password = data.get('password')
 
-    if not all([username, password]):
+    if not all([email, password]):
         return jsonify({'error': 'Missing some required fields'}), 400
 
-    user = users_collection.find_one({'username':username})
+    user = users_collection.find_one({'email':email})
 
     if user and check_password_hash(user['password'], password):
-        token = jwt.encode({'username': username, 'exp':datetime.datetime.utcnow()+ datetime.timedelta(hours=24)},
-                            app.config['SECRET_KEY'], algorithem = 'HS256')
+        token = jwt.encode({'email': email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, 
+                           app.config['SECRET_KEY'], algorithm='HS256')
+
         return jsonify({'message': 'The user successfully logged in.',
-            'token': token,
-            'username': username,
-            'email': user['email']
-        }), 200
+                        'token': token,
+                        'email': email}), 200
     else:
-        return jsonify({'error': 'Invalid username or password'}), 401
+        return jsonify({'error': 'Invalid email or password'}), 401
 
 
 @app.route('/predict', methods=['POST'])          #Disease prediction function
