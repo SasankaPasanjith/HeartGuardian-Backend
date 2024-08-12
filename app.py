@@ -23,6 +23,15 @@ users_collection = db['users']
 predictions_collection = db['predictions']
 records_collection = db['records']                   #Collections
 
+def make_response(success, message=None, data=None, error=None):
+    response = {
+        'success': success,
+        'message': message,
+        'data': data,
+        'error': error
+    }
+    return jsonify(response)
+
 @app.route('/register', methods=['POST'])            #User Registration function
 @cross_origin()
 def register():
@@ -34,14 +43,14 @@ def register():
     confirm_password = data.get('confirm_password')
     
     if not all([username, password, confirm_password, email, mobile_number]):
-        return jsonify({'error': 'Missing some required fields'}), 400
-    
+        return make_response(False, error='Missing some required fields'), 400
+
     if password != confirm_password:
-        return jsonify({'error': 'Passwords do not match'}), 400
+        return make_response(False, error='Passwords do not match'), 400
 
     existing_user = users_collection.find_one({'$or': [{'username': username}, {'email': email}]})
     if existing_user:
-        return jsonify({'error': 'Username or email already exists'}), 400
+        return make_response(False, error='Username or email already exists'), 400
 
     hashed_password = generate_password_hash(password)
 
@@ -55,9 +64,15 @@ def register():
     try:
         users_collection.insert_one(user_record)
     except errors.PyMongoError as e:
-        return jsonify({'error': str(e)}), 500
+        return make_response(False, error=str(e)), 500
 
-    return jsonify({'message': 'The user successfully registered.'}), 201
+    token = jwt.encode({
+        'email': email,
+        'username': username,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token valid for 1 hour
+    }, app.config['SECRET_KEY'], algorithm='HS256')
+
+    return make_response(True, message='The user successfully registered.', data={'token': token}), 201
 
 
 @app.route('/login', methods=['POST'])             #User Login function
@@ -68,20 +83,24 @@ def login():
     password = data.get('password')
 
     if not all([email, password]):
-        return jsonify({'error': 'Missing some required fields'}), 400
+        return make_response(False, error='Missing some required fields'), 400
 
     user = users_collection.find_one({'email':email})
 
     if user and check_password_hash(user['password'], password):
-        token = jwt.encode({'email': email, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, 
-                           app.config['SECRET_KEY'], algorithm='HS256')
+        token = jwt.encode({
+            'email': email,
+            'username': user['username'],
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)   # Token valid for 1 hour
+        }, app.config['SECRET_KEY'], algorithm='HS256')
 
-        return jsonify({'message': 'The user successfully logged in.',
-                        'token': token,
-                        'email': email,
-                        'username': user['username']}), 200   
+        return make_response(True, message='The user successfully logged in.', data={
+            'token': token,
+            'email': email,
+            'username': user['username']
+        }), 200
     else:
-        return jsonify({'error': 'Invalid email or password'}), 401
+        return make_response(False, error='Invalid email or password'), 401
 
 
 @app.route('/predict', methods=['POST'])          #Disease prediction function
@@ -93,14 +112,18 @@ def predict():
     if token:
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            user = users_collection.find_one({'username': data['username']})
-        except:
-            pass                    #If token is invalid or missing, the function continue as unauthenticated user
+            user = users_collection.find_one({'email': data['email']})
+        except jwt.ExpiredSignatureError:
+            return make_response(False, error='Token has expired'), 401
+        except jwt.InvalidTokenError:
+            return make_response(False, error='Invalid token'), 403
+        except Exception as e:
+            return make_response(False, error=str(e)), 500
 
     data = request.get_json()
 
     if not data :
-        return jsonify({'error': 'No data provided'}), 400
+        return make_response(False, error='No data provided'), 400
     
     # Get the input data from the form
     age = data.get('age')
@@ -113,20 +136,15 @@ def predict():
 
     # Check if all required fields are present
     if not all([age, sex, cp, trestbps, chol, fbs, thalach]):
-        return jsonify({'error': 'Missing required fields'}), 400
+        return make_response(False, error='Missing required fields'), 400
     
     #Convert data to a list  of lists for model prediction
     input_data = np.array([age, sex, cp, trestbps, chol, fbs, thalach]).reshape(1, -1)
 
-    print("Input data:", input_data)  # Debug print
-
     try:
         prediction = model.predict(input_data)      # Make prediction using the model
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-    print("Prediction:", prediction)
+        return make_response(False, error=str(e)), 500
 
 # Convert the prediction to a standard Python type
     prediction = prediction.tolist()
@@ -147,11 +165,13 @@ def predict():
 
     try:
         predictions_collection.insert_one(prediction_record)     #Handle DB errors
+        if user:
+            records_collection.insert_one(prediction_record)
     except errors.PyMongoError as e:
-        return jsonify({'error': str(e)}), 500
-
+        return make_response(False, error=str(e)), 500
+    
 # Return the prediction as JSON
-    return jsonify({'prediction': prediction})
+    return make_response(True, data={'prediction': prediction}), 200
 
 
 @app.route('/predictions', methods=['GET'])     #Get all past predictions function
@@ -159,28 +179,28 @@ def predict():
 def get_predictions():
     token = request.headers.get('Authorization')
     if not token:
-        return jsonify({'error': 'The token is missing.'}), 403
+        return make_response(False, error='The token is missing.'), 403
 
     try:
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'The token has expired.'}), 403
+        return make_response(False, error='The token has expired.'), 403
     except jwt.InvalidTokenError:
-        return jsonify({'error': 'The token is invalid.'}), 403
+        return make_response(False, error='The token is invalid.'), 403
     
-    user = users_collection.find_one({'username': data['username']})
+    user = users_collection.find_one({'email': data['email']})
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        return make_response(False, error='User not found'), 404
     
     try:
-        predictions = list(predictions_collection.find({'username': user['username']}))
+        predictions = list(predictions_collection.find({'email': user['email']}))
     except errors.PyMongoError as e:
-        return jsonify({'error': str(e)}),500
+        return make_response(False, error=str(e)), 500
     
     for prediction in predictions:
         prediction['_id'] = str(prediction['_id'])
         
-    return jsonify({'predictions': predictions})
+    return make_response(True, data={'predictions': predictions}), 200
 
 @app.route("/")
 def index():
