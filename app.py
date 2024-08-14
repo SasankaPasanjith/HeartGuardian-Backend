@@ -106,8 +106,12 @@ def login():
 @app.route('/predict', methods=['POST'])          #Disease prediction function
 @cross_origin()
 def predict():
-
     token = request.headers.get('Authorization')
+    
+    # Ensure the token is properly prefixed with 'Bearer'
+    if token and token.startswith('Bearer '):
+        token = token.split(' ')[1]  # Extract the token part
+    
     user = None
     if token:
         try:
@@ -119,6 +123,8 @@ def predict():
             return make_response(False, error='Invalid token'), 403
         except Exception as e:
             return make_response(False, error=str(e)), 500
+    else:
+        return make_response(False, error='Authorization token missing or invalid.'), 403
 
     data = request.get_json()
 
