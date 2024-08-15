@@ -123,8 +123,6 @@ def predict():
             return make_response(False, error='Invalid token'), 403
         except Exception as e:
             return make_response(False, error=str(e)), 500
-    else:
-        return make_response(False, error='Authorization token missing or invalid.'), 403
 
     data = request.get_json()
 
@@ -168,7 +166,7 @@ def predict():
         'username': user['username'] if user else None,  #Add username if user authenticated
         'email': user['email'] if user else None         #Add email if user authenticated
     }
-
+    
     try:
         predictions_collection.insert_one(prediction_record)     #Handle DB errors
         if user:
