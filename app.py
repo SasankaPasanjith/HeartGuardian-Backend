@@ -185,25 +185,28 @@ def get_predictions():
     if not token:
         return make_response(False, error='The token is missing.'), 403
 
+    if token.startswith('Bearer '):
+        token = token.split(' ')[1]  # Extract the token part
+
     try:
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
         return make_response(False, error='The token has expired.'), 403
     except jwt.InvalidTokenError:
         return make_response(False, error='The token is invalid.'), 403
-    
+
     user = users_collection.find_one({'email': data['email']})
     if not user:
         return make_response(False, error='User not found'), 404
-    
+
     try:
         predictions = list(predictions_collection.find({'email': user['email']}))
     except errors.PyMongoError as e:
         return make_response(False, error=str(e)), 500
-    
+
     for prediction in predictions:
         prediction['_id'] = str(prediction['_id'])
-        
+
     return make_response(True, data={'predictions': predictions}), 200
 
 @app.route("/")
