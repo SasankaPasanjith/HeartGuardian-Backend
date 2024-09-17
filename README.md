@@ -3,7 +3,7 @@
 
 ## Technologies
 
-* Python, Flask
+* Python, Flask, JWT, MongoDB, Pytest
 
 
 ## How to Run the Project
@@ -14,23 +14,23 @@
 * Activate Venv using this command.
   `venv\Scripts\activate`
 * After activate the Virtual Environment, start the server by typing `python app.py`. This will start the development server at http://127.0.0.1:5000/
-* This URL display API status on your web browser.
-
-![First Step](https://github.com/SasankaPasanjith/career-compass-website/blob/main/templates/first%20step.PNG)
-
-*Run the Backend on Local Computer*
+* Click the URL if you want to display backend API status on your web browser.
 
 
-![URL](https://github.com/SasankaPasanjith/career-compass-website/blob/main/templates/API%20Running.PNG)
+*Running the Backend on Terminal in Local Machine*
+![First Step](https://github.com/SasankaPasanjith/HeartGuardian-UI/blob/main/src/assets/Backend/Terminal%20Start.PNG)
+
+
 
 *URL Running on Web Browser*
+![URL](https://github.com/SasankaPasanjith/career-compass-website/blob/main/templates/API%20Running.PNG)
 
 
-![No risk HD](https://github.com/SasankaPasanjith/career-compass-website/blob/main/templates/No%20HD%20disease.PNG)
 
-*CMD view for No Risk of Heart Disease*
+*Login to the System & Get Prediction*
+![Login & get prediction](https://github.com/SasankaPasanjith/HeartGuardian-UI/blob/main/src/assets/Backend/user%20login%20%26%20get%20prediction.PNG)
 
 
-![Risk HD](https://github.com/SasankaPasanjith/career-compass-website/blob/main/templates/HD%20positive%20risk.PNG)
 
-*CMD view for Positive Risk of Heart Disease*
+*Register New User & Get Prediction*
+![Register user & get prediction](https://github.com/SasankaPasanjith/HeartGuardian-UI/blob/main/src/assets/Backend/register%20user.PNG)
